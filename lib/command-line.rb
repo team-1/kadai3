@@ -6,7 +6,7 @@ require 'view/text'
 require 'shortest-path'
 
 #
-# command-line options passed to routing-switch.rb
+# command-line options passed to sliceable-switch.rb
 #
 class CommandLine
   include GLI::App
@@ -23,7 +23,7 @@ class CommandLine
   end
 
   def parse(argv)
-    program_desc 'Routing switch controller'
+    program_desc 'Sliceable switch controller'
     parse_set_flag_and_switch
     define_text_command
     define_graphviz_command
