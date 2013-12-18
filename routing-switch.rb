@@ -8,6 +8,7 @@ require 'command-line'
 require 'topology'
 require 'trema'
 require 'trema-extensions/port'
+require 'sqlite3'
 
 #
 # Routing Switch using LLDP to collect network topology information.
@@ -15,19 +16,20 @@ require 'trema-extensions/port'
 class RoutingSwitch < Controller
   periodic_timer_event :flood_lldp_frames, 1
 
-  COOKIEVALUEFORFLOWTOHOST = -1
-  FLOWHARDTIMEOUT = 10
+  COOKIEVALUEFORFLOWTOHOST = 0
+  FLOWHARDTIMEOUTTOHOST = 10
+  INITIALFLOWHARDTIMEOUT = 10
+  DIFFFLOWHARDTIMEOUT = 1
 
   def start
     @fdb = {}
-    @adb = {}
     @command_line = CommandLine.new
     @command_line.parse(ARGV.dup)
     @topology = Topology.new(@command_line)
+    @slice_db = SQLite3::Database.new "slice.db"
   end
 
   def switch_ready(dpid)
-    @adb[dpid] = {} unless @adb.include?(dpid)
     send_message dpid, FeaturesRequest.new
   end
 
@@ -42,7 +44,6 @@ class RoutingSwitch < Controller
       @fdb.delete(key) if value['dpid'] == dpid
     end
     @topology.delete_switch dpid
-    @adb.delete(dpid) if @adb.include?(dpid)
   end
 
   def port_status(dpid, port_status)
@@ -56,18 +57,19 @@ class RoutingSwitch < Controller
       add_host_by_packet_in dpid, packet_in
       learn_new_host_fdb dpid, packet_in
       dest_host = @fdb[packet_in.macda]
-      set_flow_for_routing dpid, packet_in, dest_host if dest_host
+      if dest_host
+        is_same = is_belong_to_same_slice(packet_in.macsa, packet_in.macda)
+        set_flow_for_routing dpid, packet_in, dest_host if is_same
+      end
     elsif packet_in.lldp?
       @topology.add_link_by dpid, packet_in
     end
   end
 
   def flow_removed(dpid, flow_removed)
-    action = @adb[dpid][flow_removed.match.to_s]
-    if action
-      puts "cookie value" + flow_removed.cookie.to_s
-      @topology.decrement_link_weight_on_flow dpid, action
-      @adb[dpid].delete(flow_removed.match.to_s)
+    if flow_removed.cookie.to_i > COOKIEVALUEFORFLOWTOHOST
+      puts ">> cookie value of removed flow in dpid #{dpid.to_s} : " + flow_removed.cookie.to_s
+      @topology.decrement_link_weight_on_flow dpid, flow_removed.cookie.to_i
     end
   end
 
@@ -89,20 +91,17 @@ class RoutingSwitch < Controller
 
   def set_flow_for_routing(dpid, packet_in, dest_host)
     if dest_host['dpid'] == dpid
-      flow_mod_to_host(dpid, packet_in, dest_host['in_port'], FLOWHARDTIMEOUT)
+      flow_mod_to_host(dpid, packet_in, dest_host['in_port'], FLOWHARDTIMEOUTTOHOST)
       packet_out(dpid, packet_in, dest_host['in_port'])
     else
       sp = @command_line.shortest_path
       links_result = sp.get_shortest_path(@topology, dpid, dest_host['dpid'])
       if links_result.length > 0
+        temp_timeout = INITIALFLOWHARDTIMEOUT
         links_result.each do |each|
-          flow_mod(each[0], packet_in, each[1].to_i, FLOWHARDTIMEOUT)
-          key = Match.new(
-            dl_src: packet_in.macsa.to_s,
-            dl_dst: packet_in.macda.to_s
-          ).to_s
-          @adb[dpid][key] = each[1] unless @adb[dpid].include?(key)
+          flow_mod(each[0], packet_in, each[1].to_i, temp_timeout)
           @topology.increment_link_weight_on_flow each[0], each[1]
+          temp_timeout = temp_timeout + DIFFFLOWHARDTIMEOUT
         end
       end
     end
@@ -162,6 +161,17 @@ class RoutingSwitch < Controller
       packet_in: message,
       actions: SendOutPort.new(port)
     )
+  end
+
+  def is_belong_to_same_slice(macsa, macda)
+    slice_number_src = -1
+    slice_number_dst = -2
+    sql_result_src = @slice_db.execute("SELECT slice_number FROM bindings WHERE type = 2 AND mac = #{macsa.to_i};")
+    slice_number_src = sql_result_src[0] if sql_result_src
+    sql_result_dst = @slice_db.execute("SELECT slice_number FROM bindings WHERE type = 2 AND mac = #{macda.to_i};")
+    slice_number_dst = sql_result_dst[0] if sql_result_dst
+    puts "FAIL! There are not src/dst hosts in same slice. \n" unless slice_number_src == slice_number_dst
+    result = (slice_number_src == slice_number_dst)? true : false
   end
 end
 
