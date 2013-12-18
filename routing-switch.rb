@@ -15,7 +15,8 @@ require 'trema-extensions/port'
 class RoutingSwitch < Controller
   periodic_timer_event :flood_lldp_frames, 1
 
-  FLOWHARDTIMEOUT = 300
+  COOKIEVALUEFORFLOWTOHOST = -1
+  FLOWHARDTIMEOUT = 10
 
   def start
     @fdb = {}
@@ -64,6 +65,7 @@ class RoutingSwitch < Controller
   def flow_removed(dpid, flow_removed)
     action = @adb[dpid][flow_removed.match.to_s]
     if action
+      puts "cookie value" + flow_removed.cookie.to_s
       @topology.decrement_link_weight_on_flow dpid, action
       @adb[dpid].delete(flow_removed.match.to_s)
     end
@@ -139,7 +141,8 @@ class RoutingSwitch < Controller
       dpid,
       hard_timeout: timeout,
       match: Match.new(dl_src: message.macsa.to_s, dl_dst: message.macda.to_s),
-      actions: SendOutPort.new(port)
+      actions: SendOutPort.new(port),
+      cookie: port.to_i
     )
   end
 
@@ -148,7 +151,8 @@ class RoutingSwitch < Controller
       dpid,
       hard_timeout: timeout,
       match: Match.new(dl_dst: message.macda.to_s),
-      actions: SendOutPort.new(port)
+      actions: SendOutPort.new(port),
+      cookie: COOKIEVALUEFORFLOWTOHOST
     )
   end
 
