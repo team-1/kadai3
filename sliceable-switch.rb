@@ -170,7 +170,7 @@ class SliceableSwitch < Controller
     slice_number_src = sql_result_src[0] if sql_result_src
     sql_result_dst = @slice_db.execute("SELECT slice_number FROM bindings WHERE type = 2 AND mac = #{macda.to_i};")
     slice_number_dst = sql_result_dst[0] if sql_result_dst
-    puts "FAIL! There are not src/dst hosts in same slice. \n" unless slice_number_src == slice_number_dst
+    puts "There are not src (MAC: #{macsa.to_s}) and dst (MAC: #{macda.to_s}) hosts in same slice." unless slice_number_src == slice_number_dst
     result = (slice_number_src == slice_number_dst)? true : false
   end
 end

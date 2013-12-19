@@ -45,7 +45,7 @@ graphviz でトポロジ画像 (ポート番号付) を出す:
 - '-p' オプションを使う
 
 ```shell
-$ trema run "./sliceable-switch.rb -p graphviz ./topology.png" -c fullmesh.conf
+$ trema run "./sliceable-switch.rb -p graphviz /tmp/topology.png" -c fullmesh.conf
 ```
 
 LLDP の宛先 MAC アドレスを任意のやつに変える:
