@@ -26,7 +26,11 @@ class SliceableSwitch < Controller
     @command_line = CommandLine.new
     @command_line.parse(ARGV.dup)
     @topology = Topology.new(@command_line)
-    @slice_db = SQLite3::Database.new "slice.db"
+    begin
+      @slice_db = SQLite3::Database.new "slice.db"
+    rescue SQLite3::SQLException => e
+      puts e
+    end  
   end
 
   def switch_ready(dpid)
