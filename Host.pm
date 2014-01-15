@@ -99,9 +99,13 @@ sub list_hosts(){
 	return 0;
     }
 
-    my $out = sprintf("%20s\t%32s\t%8s\t%8s\n", "MAC", "Datapath ID", "Port", "is_occpuied");
+    my $out = sprintf("%20s\t%8s\t%8s\t%8s\n", "MAC", "Datapath ID", "Port", "is_occpuied");
     foreach my $host (@hosts){
-	$out .= sprintf("%20s\t%32s\t%8d\t%8d\n", ${$host}{'mac'}, ${$host}{'datapath_id'},${$host}{'port'},${$host}{'is_occupied'});
+	$out .= sprintf("%20s\t%8s\t%8d\t%8d\n", 
+			${$host}{'mac'}, 
+			${$host}{'datapath_id'}, 
+			${$host}{'port'}, 
+			${$host}{'is_occupied'});
     }
 
     info($out);
@@ -173,6 +177,68 @@ sub update_host_state(){
     return SUCCEEDED;
 }
 
+
+# 未使用状態のホスト数を得る
+sub get_number_of_available_hosts(){
+    my($self) = @_;
+    my $number_of_available_hosts = 0;
+
+    my $statement = "SELECT COUNT(*) FROM hosts WHERE is_occupied = 0";
+    my $array_ref = $self->{'dbh'}->selectrow_arrayref($statement);
+    $number_of_available_hosts = $array_ref->[0];
+
+    return $number_of_available_hosts;
+}
+
+# 指定した個数の未使用状態のホストの MAC アドレスを得る
+sub get_mac_of_some_available_hosts(){
+    my($self, $number_of_ordered_hosts) = @_;
+    my @macs_available = ();
+
+    if($number_of_ordered_hosts < 1){
+	debug("Number of ordered hosts should be >= 1.");
+	return ();
+    }
+    
+    # 未使用ノードが指定個数取得可能かどうか確認
+    my $current_number = $self->get_number_of_available_hosts();
+    if($current_number < $number_of_ordered_hosts){
+	debug("Could not get $number_of_ordered_hosts available hosts.");
+	return ();
+    }
+    
+    # 確保した未使用ノードの MAC アドレスを配列に得る
+    my $statement_body = "SELECT mac FROM hosts WHERE is_occupied = 0";
+    my $statement_options = "LIMIT $number_of_ordered_hosts";	
+    my $statement = $statement_body." ".$statement_options;
+    my $sth = $self->{'dbh'}->prepare($statement);
+    my $ret = $sth->execute();
+
+    while (my $arr_ref = $sth->fetchrow_arrayref){
+	my ($mac) = @$arr_ref;
+	push(@macs_available, $mac);
+    }
+
+    return @macs_available;
+}
+
+# 指定した個数の未使用状態のホストの MAC アドレス (文字列) を得る
+sub get_mac_str_of_some_available_hosts(){
+    my($self, $number_of_ordered_hosts) = @_;
+    my @macs_available = ();
+    my @macs_str_available = ();
+
+    # 未使用ホストの MAC アドレスを文字列の形で得る
+    @macs_available = $self->get_mac_of_some_available_hosts($number_of_ordered_hosts);
+    if(@macs_available){
+    	for my $temp_mac (@macs_available){
+    	    my $temp_mac_str = int_to_mac_string($temp_mac);
+    	    push(@macs_str_available, $temp_mac_str);
+    	}
+    }
+
+    return @macs_str_available;
+}
 
 # sub create_slice(){
 #     my ($self, $slice_id, $description) = @_;

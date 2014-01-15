@@ -107,9 +107,58 @@ sub main(){
 	    error("Failed to modify state of the host (MAC: $mac_str).");
 	}
     }
+    elsif($action eq "show-number-of-available-hosts"){
+	usage_and_exit() if @ARGV != 1;
+	my $number_of_available_hosts = -1;
+	
+	$number_of_available_hosts = $config->get_number_of_available_hosts();
+	if($number_of_available_hosts >= 0){
+	    info("Number of available hosts: $number_of_available_hosts"); 
+	}else{
+	    error("Failed to get a number of available hosts."); 
+	}
+    }elsif($action eq "show-macs-of-available-hosts"){
+	usage_and_exit() if @ARGV != 2;
+	my @macs_available = ();
+	my $number_of_ordered_hosts = -1;
 
- 
-    
+	$number_of_ordered_hosts = $ARGV[1];	
+	if($number_of_ordered_hosts < 1){
+	    error("Number of ordered hosts should be >= 1.");
+	    return;
+	}
+
+	@macs_available = $config->get_mac_of_some_available_hosts($number_of_ordered_hosts);
+	if(@macs_available){
+	    for my $temp_mac (@macs_available){
+		printf("%20d\n", $temp_mac);
+	    }
+	}else{
+	    info("Could not get $number_of_ordered_hosts available hosts.");
+	}	
+    }
+    elsif($action eq "show-macs-str-of-available-hosts"){
+	usage_and_exit() if @ARGV != 2;
+	my @macs_str_available = ();
+	my $number_of_ordered_hosts = -1;
+
+	$number_of_ordered_hosts = $ARGV[1];	
+	if($number_of_ordered_hosts < 1){
+	    error("Number of ordered hosts should be >= 1.");
+	    return;
+	}
+
+	@macs_str_available = $config->get_mac_str_of_some_available_hosts($number_of_ordered_hosts);
+	if(@macs_str_available){
+	    for my $temp_mac (@macs_str_available){
+		printf("%20s\n", $temp_mac);
+	    }
+	}else{
+	    info("Could not get $number_of_ordered_hosts available hosts.");
+	}	
+    }
+
+
     # elsif($action eq "add-port"){
     # 	usage_and_exit() if !defined($slice);
     # 	usage_and_exit() if (@ARGV < 5 || @ARGV > 6);
@@ -228,6 +277,9 @@ sub usage(){
     printf(STDERR "  host add HOST_MAC DATAPATH_ID PORT [IS_OCCUPIED]\n");
     printf(STDERR "  host delete HOST_MAC\n");
     printf(STDERR "  host modify-host-state HOST_MAC IS_OCCUPIED\n");
+    printf(STDERR "  host show-number-of-available-hosts\n");
+    printf(STDERR "  host show-macs-of-available-hosts NUMBER_OF_ORDERED_HOSTS\n");
+    printf(STDERR "  host show-macs-str-of-available-hosts NUMBER_OF_ORDERED_HOSTS\n");
     # printf(STDERR "  host show HOST_MAC\n");
     #
     # printf(STDERR "  slice create SLICE_ID [DESCRIPTION]\n");
