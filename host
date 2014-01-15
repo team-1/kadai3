@@ -2,10 +2,11 @@
 #
 # Host configuration command for sliceable switch application.
 #
-# Author: Yasunobu Chiba
+# Author: Yasunobu Chiba,
+#         Masanori Ishino
 #
 # Copyright (C) 2011-2012 NEC Corporation
-#           (C) 2013 Masanori Ishino
+#           (C) 2013-2014 Masanori Ishino
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2, as
@@ -44,11 +45,8 @@ sub main(){
 	exit;
     }
 
-
-
     my $Config = $config;
     my $action = $ARGV[0];
-    my $slice = $ARGV[1];
 
     if(!defined($action)){
 	usage_and_exit();
@@ -56,96 +54,148 @@ sub main(){
 
     if($action eq "list"){
 	usage_and_exit() if @ARGV != 1;
-	$config->list_host();
+	$config->list_hosts();
     }
+    elsif($action eq "add"){
+	usage_and_exit() if (@ARGV < 4 || @ARGV > 5);
+
+	my $mac_str = $ARGV[1];
+	my $mac = mac_string_to_int($ARGV[1]);
+   	my $datapath_id = oct($ARGV[2]);
+    	my $port = oct($ARGV[3]);
+	my $is_occupied = Host::FREE;
+
+	my $ret = $config->add_host($mac, $datapath_id, $port, $is_occupied);
+	if($ret == Host::SUCCEEDED){
+	    info("A new host (MAC: $mac_str) is added successfully.");
+	}else{
+	    error("Failed to add new host (MAC: $mac_str).");
+	}
+    }
+    elsif($action eq "delete"){
+	usage_and_exit() if @ARGV != 2;
+
+	my $mac_str = $ARGV[1];
+	my $mac = mac_string_to_int($ARGV[1]);
+
+	my $ret = $config->delete_host($mac);
+	if($ret == Host::SUCCEEDED){
+	    info("A host (MAC: $mac_str) is deleted successfully.");
+	}
+	elsif($ret == Host::NO_HOST_FOUND){
+	    error("No host found.");
+	}
+	else{
+	    error("Failed to delete a host (MAC: $mac_str).");
+	}
+    }
+    elsif($action eq "modify-host-state"){
+	usage_and_exit() if @ARGV != 3;
+
+	my $mac_str = $ARGV[1];
+	my $mac = mac_string_to_int($ARGV[1]);
+	my $is_occupied = $ARGV[2];
+
+	my $ret = $config->update_host_state($mac, $is_occupied);
+	if($ret == Host::SUCCEEDED){
+	    info("A stete of the host (MAC: $mac_str) is updated to $is_occupied successfully.");
+	}
+	elsif($ret == Host::NO_HOST_FOUND){
+	    error("No host found.");
+	}
+	else{
+	    error("Failed to modify state of the host (MAC: $mac_str).");
+	}
+    }
+
  
     
-    elsif($action eq "add-port"){
-	usage_and_exit() if !defined($slice);
-	usage_and_exit() if (@ARGV < 5 || @ARGV > 6);
-	my $dpid = oct($ARGV[2]);
-	my $port = oct($ARGV[3]);
-	my $vid = oct($ARGV[4]);
-	my $id = sprintf("%04x%08x:%04x:%04x", $dpid >> 32, $dpid & 0xffffffff, $port, $vid);
-	if(defined($ARGV[5])){
-	    $id = $ARGV[5];
-	}
-	my $ret = $config->add_port($id, $slice, $dpid, $port, $vid);
-	if($ret == Slice::SUCCEEDED){
-	    info("A port is added successfully.");
-	}
-	elsif($ret == Slice::NO_SLICE_FOUND){
-	    error("No slice found.");
-	}
-	else{
-	    error("Failed to add a port.");
-	}
-    }
-    elsif($action eq "delete-port"){
-	usage_and_exit() if !defined($slice);
-	usage_and_exit() if @ARGV != 3;
-	my $id = $ARGV[2];
-	my $ret = $config->delete_binding_by_id($slice, $id);
-	if($ret == Slice::SUCCEEDED){
-	    info("A port is deleted successfully.");
-	}
-	elsif($ret == Slice::NO_SLICE_FOUND){
-	    error("No slice found.");
-	}
-	else{
-	    error("Failed to delete a port.");
-	}
-    }
-    elsif($action eq "show-port"){
-	usage_and_exit() if !defined($slice);
-	usage_and_exit() if (@ARGV < 2 || @ARGV > 3);
-	my $id;
-	if(defined($ARGV[2])){
-	    $id = $ARGV[2];
-	}
-	$config->show_bindings(Slice::BINDING_TYPE_PORT, $slice, $id);
-    }
-    elsif($action eq "add-mac"){
-	usage_and_exit() if !defined($slice);
-	usage_and_exit() if (@ARGV < 3 || @ARGV > 4);
-	my $mac = mac_string_to_int($ARGV[2]);
-	my $id = sprintf("%04x%08x", $mac >> 32, $mac & 0xffffffff);
-	if(defined($ARGV[3])){
-	    $id = $ARGV[3];
-	}
-	my $ret = $config->add_mac($id, $slice, $mac);
-	if($ret == Slice::SUCCEEDED){
-	    info("A MAC-based binding is added successfully.");
-	}
-	elsif($ret == Slice::NO_SLICE_FOUND){
-	    error("No slice found.");
-	}
-	else{
-	    error("Failed to add a MAC-based binding.");
-	}
-    }
-    elsif($action eq "delete-mac"){
-	usage_and_exit() if !defined($slice);
-	usage_and_exit() if @ARGV != 3;
-	my $id = $ARGV[2];
-	my $ret = $config->delete_binding_by_id($slice, $id);
-	if($ret == Slice::SUCCEEDED){
-	    info("A MAC-based binding is deleted successfully.");
-	}
-	elsif($ret == Slice::NO_SLICE_FOUND){
-	    error("No slice found.");
-	}
-	else{
-	    error("Failed to delete a MAC-based binding.");
-	}
-    }
-    elsif($action eq "show"){
-	usage_and_exit() if !defined($slice);
-	usage_and_exit() if @ARGV != 2;
-	if($config->show_description($slice) == Slice::SUCCEEDED){
-	    $config->show_bindings(Slice::BINDING_TYPE_ALL, $slice);
-	}
-    }
+    # elsif($action eq "add-port"){
+    # 	usage_and_exit() if !defined($slice);
+    # 	usage_and_exit() if (@ARGV < 5 || @ARGV > 6);
+    # 	my $dpid = oct($ARGV[2]);
+    # 	my $port = oct($ARGV[3]);
+    # 	my $vid = oct($ARGV[4]);
+    # 	my $id = sprintf("%04x%08x:%04x:%04x", $dpid >> 32, $dpid & 0xffffffff, $port, $vid);
+    # 	if(defined($ARGV[5])){
+    # 	    $id = $ARGV[5];
+    # 	}
+    # 	my $ret = $config->add_port($id, $slice, $dpid, $port, $vid);
+    # 	if($ret == Slice::SUCCEEDED){
+    # 	    info("A port is added successfully.");
+    # 	}
+    # 	elsif($ret == Slice::NO_SLICE_FOUND){
+    # 	    error("No slice found.");
+    # 	}
+    # 	else{
+    # 	    error("Failed to add a port.");
+    # 	}
+    # }
+    # elsif($action eq "delete-port"){
+    # 	usage_and_exit() if !defined($slice);
+    # 	usage_and_exit() if @ARGV != 3;
+    # 	my $id = $ARGV[2];
+    # 	my $ret = $config->delete_binding_by_id($slice, $id);
+    # 	if($ret == Slice::SUCCEEDED){
+    # 	    info("A port is deleted successfully.");
+    # 	}
+    # 	elsif($ret == Slice::NO_SLICE_FOUND){
+    # 	    error("No slice found.");
+    # 	}
+    # 	else{
+    # 	    error("Failed to delete a port.");
+    # 	}
+    # }
+    # elsif($action eq "show-port"){
+    # 	usage_and_exit() if !defined($slice);
+    # 	usage_and_exit() if (@ARGV < 2 || @ARGV > 3);
+    # 	my $id;
+    # 	if(defined($ARGV[2])){
+    # 	    $id = $ARGV[2];
+    # 	}
+    # 	$config->show_bindings(Slice::BINDING_TYPE_PORT, $slice, $id);
+    # }
+    # elsif($action eq "add-mac"){
+    # 	usage_and_exit() if !defined($slice);
+    # 	usage_and_exit() if (@ARGV < 3 || @ARGV > 4);
+    # 	my $mac = mac_string_to_int($ARGV[2]);
+    # 	my $id = sprintf("%04x%08x", $mac >> 32, $mac & 0xffffffff);
+    # 	if(defined($ARGV[3])){
+    # 	    $id = $ARGV[3];
+    # 	}
+    # 	my $ret = $config->add_mac($id, $slice, $mac);
+    # 	if($ret == Slice::SUCCEEDED){
+    # 	    info("A MAC-based binding is added successfully.");
+    # 	}
+    # 	elsif($ret == Slice::NO_SLICE_FOUND){
+    # 	    error("No slice found.");
+    # 	}
+    # 	else{
+    # 	    error("Failed to add a MAC-based binding.");
+    # 	}
+    # }
+    # elsif($action eq "delete-mac"){
+    # 	usage_and_exit() if !defined($slice);
+    # 	usage_and_exit() if @ARGV != 3;
+    # 	my $id = $ARGV[2];
+    # 	my $ret = $config->delete_binding_by_id($slice, $id);
+    # 	if($ret == Slice::SUCCEEDED){
+    # 	    info("A MAC-based binding is deleted successfully.");
+    # 	}
+    # 	elsif($ret == Slice::NO_SLICE_FOUND){
+    # 	    error("No slice found.");
+    # 	}
+    # 	else{
+    # 	    error("Failed to delete a MAC-based binding.");
+    # 	}
+    # }
+    # elsif($action eq "show"){
+    # 	usage_and_exit() if !defined($slice);
+    # 	usage_and_exit() if @ARGV != 2;
+    # 	if($config->show_description($slice) == Slice::SUCCEEDED){
+    # 	    $config->show_bindings(Slice::BINDING_TYPE_ALL, $slice);
+    # 	}
+    # }
     else{
 	usage_and_exit();
     }
@@ -178,7 +228,8 @@ sub usage(){
     printf(STDERR "  host add HOST_MAC DATAPATH_ID PORT [IS_OCCUPIED]\n");
     printf(STDERR "  host delete HOST_MAC\n");
     printf(STDERR "  host modify-host-state HOST_MAC IS_OCCUPIED\n");
-    printf(STDERR "  host show HOST_MAC\n");
+    # printf(STDERR "  host show HOST_MAC\n");
+    #
     # printf(STDERR "  slice create SLICE_ID [DESCRIPTION]\n");
     # printf(STDERR "  slice modify SLICE_ID DESCRIPTION\n");
     # printf(STDERR "  slice destroy SLICE_ID\n");
