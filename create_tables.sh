@@ -28,13 +28,13 @@ if [ "x$HOST_DB_FILE" = "x" ]; then
     HOST_DB_FILE=./host.db
 fi
 
+if [ ! -e "$HOST_DB_FILE" ]; then
+    sqlite3 "$HOST_DB_FILE" < ./create_host_table.sql
+fi
 if [ ! -e "$SLICE_DB_FILE" ]; then
     sqlite3 "$SLICE_DB_FILE" < ./create_slice_table.sql
 fi
 if [ ! -e "$FILTER_DB_FILE" ]; then
     sqlite3 "$FILTER_DB_FILE" < ./create_filter_table.sql
     ./filter add default priority=0 action=ALLOW
-fi
-if [ ! -e "$HOST_DB_FILE" ]; then
-    sqlite3 "$HOST_DB_FILE" < ./create_host_table.sql
 fi

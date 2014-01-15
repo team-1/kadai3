@@ -64,7 +64,10 @@ sub main(){
    	my $datapath_id = oct($ARGV[2]);
     	my $port = oct($ARGV[3]);
 	my $is_occupied = Host::FREE;
-
+	if(defined($ARGV[4])){
+	    $is_occupied = $ARGV[4];
+	}
+	
 	my $ret = $config->add_host($mac, $datapath_id, $port, $is_occupied);
 	if($ret == Host::SUCCEEDED){
 	    info("A new host (MAC: $mac_str) is added successfully.");

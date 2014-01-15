@@ -168,14 +168,25 @@ class SliceableSwitch < Controller
   end
 
   def is_belong_to_same_slice(macsa, macda)
-    slice_number_src = -1
-    slice_number_dst = -2
-    sql_result_src = @slice_db.execute("SELECT slice_number FROM bindings WHERE type = 2 AND mac = #{macsa.to_i};")
-    slice_number_src = sql_result_src[0] if sql_result_src
-    sql_result_dst = @slice_db.execute("SELECT slice_number FROM bindings WHERE type = 2 AND mac = #{macda.to_i};")
-    slice_number_dst = sql_result_dst[0] if sql_result_dst
-    puts "There are not src (MAC: #{macsa.to_s}) and dst (MAC: #{macda.to_s}) hosts in same slice." unless slice_number_src == slice_number_dst
+    slice_number_src = get_slice_number_from_host_db(macsa)
+    return false if slice_number_src < 0
+    slice_number_dst = get_slice_number_from_host_db(macda)
+    return false if slice_number_dst < 0
+    puts "There are not src host (MAC: #{macsa.to_s}) and dst host (MAC: #{macda.to_s}) in same slice." unless slice_number_src == slice_number_dst
     result = (slice_number_src == slice_number_dst)? true : false
+  end
+  
+  def get_slice_number_from_host_db(mac)
+    s_num = -1
+    # @slice_db.results_as_hash = true
+    sql_result = @slice_db.get_first_value("SELECT B.slice_number FROM bindings B WHERE type = 2 AND mac = #{mac.to_i} LIMIT 1;")
+    if sql_result
+      puts sql_result
+      s_num = sql_result.to_i
+    else
+      puts "There is not host (MAC: #{mac.to_s}) in binding DB."
+    end
+    s_num
   end
 end
 

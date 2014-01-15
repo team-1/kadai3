@@ -99,20 +99,19 @@ sub list_hosts(){
 	return 0;
     }
 
-    my $out = sprintf("%20s\t%8s\t%8s\t%8s\n", "MAC", "Datapath ID", "Port", "is_occpuied");
+    my $out = sprintf("%20s\t%8s\t%8s\t%12s\n", "MAC", "Datapath ID", "Port", "is_occpuied");
     foreach my $host (@hosts){
-	$out .= sprintf("%20s\t%8s\t%8d\t%8d\n", 
+	$out .= sprintf("%20s\t%8s\t%8d\t%12s\n", 
 			${$host}{'mac'}, 
 			${$host}{'datapath_id'}, 
 			${$host}{'port'}, 
-			${$host}{'is_occupied'});
+			(${$host}{'is_occupied'} == 0 ? "F": "T"));
     }
 
     info($out);
 
     return 0;
 }
-
 
 
 sub add_host(){
@@ -122,7 +121,9 @@ sub add_host(){
 	$is_occupied = FREE;
     }
 
-    my $ret = $self->{'dbh'}->do("INSERT INTO hosts (mac,datapath_id,port,is_occupied) values ($mac,$datapath_id,$port,$is_occupied)");
+    my $statement = "INSERT INTO hosts (mac,datapath_id,port,is_occupied) values ($mac,$datapath_id,$port,$is_occupied)";
+
+    my $ret = $self->{'dbh'}->do($statement);
     if($ret <= 0){
 	return FAILED;
     }
@@ -157,7 +158,7 @@ sub update_host_state(){
 	return FAILED;
     }
 
-    my $sth_confirm = $self->{'dbh'}->prepare("SELECT mac FROM hosts WHERE mac = $mac");
+    my $sth_confirm = $self->{'dbh'}->prepare("SELECT H.mac FROM hosts H WHERE mac = $mac");
     my $ret_confirm = $sth_confirm->execute();
     my $row_confirm = $sth_confirm->fetch();
     if(!defined($row_confirm)){
@@ -183,7 +184,7 @@ sub get_number_of_available_hosts(){
     my($self) = @_;
     my $number_of_available_hosts = 0;
 
-    my $statement = "SELECT COUNT(*) FROM hosts WHERE is_occupied = 0";
+    my $statement = "SELECT COUNT(H.mac) FROM hosts H WHERE is_occupied = 0";
     my $array_ref = $self->{'dbh'}->selectrow_arrayref($statement);
     $number_of_available_hosts = $array_ref->[0];
 
@@ -208,7 +209,7 @@ sub get_mac_of_some_available_hosts(){
     }
     
     # 確保した未使用ノードの MAC アドレスを配列に得る
-    my $statement_body = "SELECT mac FROM hosts WHERE is_occupied = 0";
+    my $statement_body = "SELECT H.mac FROM hosts H WHERE is_occupied = 0";
     my $statement_options = "LIMIT $number_of_ordered_hosts";	
     my $statement = $statement_body." ".$statement_options;
     my $sth = $self->{'dbh'}->prepare($statement);
@@ -239,6 +240,7 @@ sub get_mac_str_of_some_available_hosts(){
 
     return @macs_str_available;
 }
+
 
 # sub create_slice(){
 #     my ($self, $slice_id, $description) = @_;
