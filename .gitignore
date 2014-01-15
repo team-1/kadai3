@@ -17,5 +17,8 @@ tmp
 _yardoc
 doc/
 
+# Database
+*.db
+
 # Topology Image
 topology.png
