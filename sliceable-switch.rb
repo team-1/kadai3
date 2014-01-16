@@ -21,16 +21,24 @@ class SliceableSwitch < Controller
   INITIALFLOWHARDTIMEOUT = 10
   DIFFFLOWHARDTIMEOUT = 1
 
+  SLICEDBFILENAME = 'slice.db'
+  HOSTDBFILENAME  = 'host.db'
+
   def start
     @fdb = {}
     @command_line = CommandLine.new
     @command_line.parse(ARGV.dup)
     @topology = Topology.new(@command_line)
     begin
-      @slice_db = SQLite3::Database.new "slice.db"
+      @slice_db = SQLite3::Database.new SLICEDBFILENAME
     rescue SQLite3::SQLException => e
       puts e
-    end  
+    end
+    begin
+      @host_db = SQLite3::Database.new HOSTDBFILENAME
+    rescue SQLite3::SQLException => e
+      puts e
+    end
   end
 
   def switch_ready(dpid)
@@ -59,6 +67,7 @@ class SliceableSwitch < Controller
   def packet_in(dpid, packet_in)
     if packet_in.ipv4?
       add_host_by_packet_in dpid, packet_in
+      add_host_to_host_db packet_in.macsa, dpid, packet_in.in_port unless @fdb[packet_in.macsa]
       learn_new_host_fdb dpid, packet_in
       dest_host = @fdb[packet_in.macda]
       if dest_host
@@ -187,6 +196,24 @@ class SliceableSwitch < Controller
       puts "There is not host (MAC: #{mac.to_s}) in binding DB."
     end
     s_num
+  end
+
+  def add_host_to_host_db(mac_str, dpid, port)
+    mac = mac_string_to_int mac_str
+    sql_statement_body = "INSERT INTO hosts (mac,datapath_id,port,is_occupied) "
+    sql_statement_values = "values (#{mac},#{dpid},#{port},0)"
+    sql_statement = sql_statement_body + sql_statement_values
+    puts sql_statement
+    begin
+      @host_db.execute(sql_statement)
+    rescue
+      puts "Can not insert record of new host (MAC: #{mac_str}) into host DB."
+    end
+  end
+
+  def mac_string_to_int(mac_str)
+    temp_str = '0x' + (mac_str.to_s.split(':')).join
+    return temp_str.hex
   end
 end
 
