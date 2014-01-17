@@ -5,6 +5,7 @@
 # Author: Yasunobu Chiba
 #
 # Copyright (C) 2011-2012 NEC Corporation
+#           (C) 2013-2014 Masanori Ishino
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2, as
@@ -28,13 +29,17 @@ use JSON;
 use Time::HiRes qw(gettimeofday);
 use Slice;
 use Filter;
+use Host;
 
 my $Debug = 0;
 
-my $SliceDBFile = "/home/sliceable_switch/db/slice.db";
-my $FilterDBFile = "/home/sliceable_switch/db/filter.db";
+my $BaseDirDBFile = "/home/sliceable_switch/db";
+my $SliceDBFile = "$BaseDirDBFile/slice.db";
+my $FilterDBFile = "$BaseDirDBFile/filter.db";
+my $HostDBFile = "$BaseDirDBFile/host.db";
 my $Slice;
 my $Filter;
+my $Host;
 my $CGI;
 
 &main();
@@ -52,7 +57,7 @@ sub main(){
     }
 
     my $path_string = $CGI->path_info();
-    if($path_string !~ /^\/networks|filters/){
+    if($path_string !~ /^\/networks|filters|hosts/){
 	reply_not_found();
 	return;
     }
@@ -72,6 +77,18 @@ sub main(){
 	reply_error("Failed to open filter database.");
 	if(defined($Slice)){
 	    $Slice->close();
+	}
+	return;
+    }
+
+    $Host = Host->new($HostDBFile);
+    if(!defined($Host)){
+	reply_error("Failed to open host database.");
+	if(defined($Slice)){
+	    $Slice->close();
+	}
+	if(defined($Filter)){
+	    $Filter->close();
 	}
 	return;
     }
@@ -99,7 +116,28 @@ sub main(){
 sub handle_get_requests(){
     my @path = @_;
 
-    if($path[0] eq "networks"){
+    if($path[0] eq "hosts"){
+	my ($mac_str, $num_order) = ();
+
+	if(@path == 1){
+	    list_hosts();
+	}
+	elsif($path[1] eq "available" && @path == 2){
+	    get_number_of_available_hosts();
+	}
+	elsif($path[1] eq "mac" && @path == 3){
+	    $mac_str = $path[2];
+	    show_host($mac_str);
+	}
+	elsif($path[1] eq "available" && $path[2] eq "num" && @path == 4){
+	    $num_order = $path[3];
+	    get_mac_of_some_available_hosts($num_order);
+	}
+	else{
+	    reply_not_found();
+	}
+    }
+    elsif($path[0] eq "networks"){
 	my ($slice_id, $binding_id) = ();
 	if(@path >= 2){
 	    $slice_id = $path[1];
@@ -152,6 +190,46 @@ sub handle_get_requests(){
     else{
 	reply_not_found();
     }
+}
+
+
+sub list_hosts(){
+    my @hosts = $Host->get_hosts();
+    reply_ok_with_json(to_json(\@hosts));
+}
+
+
+sub get_number_of_available_hosts(){
+    my $ret = $Host->get_number_of_available_hosts();
+    my %number_of_available_hosts = {'value' => $ret};
+
+    reply_ok_with_json(to_json(\%number_of_available_hosts));
+}
+
+
+sub show_host(){
+    my ($mac_str) = @_;
+    my $mac = mac_string_to_int($mac_str);
+    
+    my %host_info = $Host->get_host($mac);
+    if(!%host_info){
+	reply_not_found();
+	return;
+    }
+
+    reply_ok_with_json(to_json(\%host_info));
+}
+
+
+sub get_mac_of_some_available_hosts(){
+    my ($num_order) = @_;
+    my @available_hosts = $Host->get_mac_of_some_available_hosts($num_order);
+    if(!@available_hosts){
+	reply_not_found();
+	return;
+    }
+
+    reply_ok_with_json(to_json(\@available_hosts));
 }
 
 
@@ -859,6 +937,13 @@ sub mac_string_to_int(){
     return hex( "0x" . $string);
 }
 
+sub remove_colons_from_mac_string(){
+    my ($string) = @_;
+
+    $string =~ s/://g;
+
+    return $string;
+}
 
 sub reply_ok_with_json(){
     my ($json) = @_;

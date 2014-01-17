@@ -24,7 +24,7 @@ Listen 0.0.0.0:8888
         Deny from all
     </Directory>
 
-    <Location ~ "/(networks|filters)">
+    <Location ~ "/(networks|filters|hosts)">
         Order allow,deny
         Allow from all
     </Location>

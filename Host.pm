@@ -89,6 +89,26 @@ sub get_hosts(){
 }
 
 
+sub get_host(){
+    my($self, $mac) = @_;
+    my %host = ();
+
+    my $sth = $self->{'dbh'}->prepare("SELECT * FROM hosts WHERE mac = $mac LIMIT 1");
+    my $ret = $sth->execute();
+    my $row = $sth->fetch(); # 先頭の 1 行のみ fetch
+    if(!defined($row)){
+ 	return %host;
+    }
+
+    $host{'mac'} = int_to_mac_string($row->[0]);
+    $host{'datapath_id'} = $row->[1];
+    $host{'port'} = $row->[2];
+    $host{'is_occupied'} = $row->[3];
+
+    return %host;
+}
+
+
 sub list_hosts(){
     my $self = shift;
 
@@ -110,6 +130,29 @@ sub list_hosts(){
 
     info($out);
 
+    return 0;
+}
+
+
+sub show_host(){
+    my($self, $mac) = @_;
+
+    my %host = $self->get_host($mac);
+
+    if(%host == 0){
+	info("No Host found.");
+	return NO_HOST_FOUND;
+    }
+
+    my $out = sprintf("%20s\t%8s\t%8s\t%12s\n", "MAC", "Datapath ID", "Port", "is_occpuied");
+    $out .= sprintf("%20s\t%8s\t%8d\t%12s\n", 
+		    $host{'mac'}, 
+		    $host{'datapath_id'}, 
+		    $host{'port'}, 
+		    ($host{'is_occupied'} == 0 ? "F": "T"));
+    
+    info($out);
+    
     return 0;
 }
 

@@ -56,6 +56,19 @@ sub main(){
 	usage_and_exit() if @ARGV != 1;
 	$config->list_hosts();
     }
+    elsif($action eq "show"){
+	usage_and_exit() if @ARGV != 2;
+
+	my $mac_str = $ARGV[1];
+	my $mac = mac_string_to_int($ARGV[1]);
+
+	my $ret = $config->show_host($mac);
+	if($ret == Host::NO_HOST_FOUND){
+	    error("No host found.");
+	}elsif($ret < 0){
+	    error("Failed to get host (MAC: $mac_str) information.");
+	}
+    }
     elsif($action eq "add"){
 	usage_and_exit() if (@ARGV < 4 || @ARGV > 5);
 
@@ -277,13 +290,13 @@ sub usage_and_exit(){
 sub usage(){
     printf(STDERR "Usage:\n");
     printf(STDERR "  host list\n");
+    printf(STDERR "  host show HOST_MAC\n");
     printf(STDERR "  host add HOST_MAC DATAPATH_ID PORT [IS_OCCUPIED]\n");
     printf(STDERR "  host delete HOST_MAC\n");
     printf(STDERR "  host modify-host-state HOST_MAC IS_OCCUPIED\n");
     printf(STDERR "  host show-number-of-available-hosts\n");
     printf(STDERR "  host show-macs-of-available-hosts NUMBER_OF_ORDERED_HOSTS\n");
     printf(STDERR "  host show-macs-str-of-available-hosts NUMBER_OF_ORDERED_HOSTS\n");
-    # printf(STDERR "  host show HOST_MAC\n");
     #
     # printf(STDERR "  slice create SLICE_ID [DESCRIPTION]\n");
     # printf(STDERR "  slice modify SLICE_ID DESCRIPTION\n");
