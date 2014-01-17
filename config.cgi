@@ -201,7 +201,7 @@ sub list_hosts(){
 
 sub get_number_of_available_hosts(){
     my $ret = $Host->get_number_of_available_hosts();
-    my %number_of_available_hosts = {'value' => $ret};
+    my %number_of_available_hosts = ('value' => $ret);
 
     reply_ok_with_json(to_json(\%number_of_available_hosts));
 }
@@ -225,7 +225,7 @@ sub get_mac_of_some_available_hosts(){
     my ($num_order) = @_;
     my @available_hosts = $Host->get_mac_of_some_available_hosts($num_order);
     if(!@available_hosts){
-	reply_not_found();
+	reply_error("Can not reserve $num_order available hosts.");
 	return;
     }
 
