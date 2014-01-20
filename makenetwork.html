@@ -1,0 +1,19 @@
+#!/usr/bin/perl
+print "Content-type: text/html\n\n";
+
+print <<"EOF";
+<html>
+<head>
+<title> make network </title>
+</head>
+<body>
+<form action="makenetwork.cgi" method="post">
+network name<br>
+<input type=text name="name"><br>
+number of hosts<br>
+<input type=text name="hosts"><br>
+<input type=submit value=OK>
+</form>
+</body>
+</html>
+EOF
