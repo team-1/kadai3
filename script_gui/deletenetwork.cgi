@@ -82,13 +82,17 @@ sub create_new_slice(){
 
 # 作成したスライスにホスト追加
 sub add_hosts_to_new_slice(){
+    my $num = @array_new_hosts_mac_str;
+    print ">>", $num, "\n";
     foreach my $m_str (@array_new_hosts_mac_str){
 	my $uri = 'http://127.0.0.1:8888/networks/'.$slice_name.'/attachments';
+	print $uri, "\n";
 	my $req = HTTP::Request->new( 'POST', $uri );
 	$req->header( 'Content-Type' => 'application/json' );
     
 	my $ua = LWP::UserAgent->new;
 	my $json = '{"id":"'.$m_str.'", "mac":"'.$m_str.'"}';
+	print $json, "\n";
 	$req->content( $json );
 	my $response = $ua->request( $req );
 
@@ -104,7 +108,9 @@ sub add_hosts_to_new_slice(){
 sub update_added_hosts(){
     foreach my $m_str (@array_new_hosts_mac_str){
 	$m_str =~ s/://g;
+	print $m_str, "\n";
 	my $uri = 'http://127.0.0.1:8888/hosts/mac/'.$m_str;
+	print $uri, "\n";
 	my $req = HTTP::Request->new( 'PUT', $uri );
 	$req->header( 'Content-Type' => 'application/json' );
 	 
@@ -123,7 +129,7 @@ sub update_added_hosts(){
 
 # Print information
 sub print_message_success(){
-print <<"EOF_A";
+print <<"EOF";
 <!DOCTYPE html>
 <html>
 <head>
@@ -135,23 +141,11 @@ print <<"EOF_A";
 <ul>
 <li>仮想ネットワーク名: $slice_name</li>
 <li>ホスト数: $number_of_hosts</li>
-<br>
-<li>仮想ネットワークに属するホストの MAC アドレス一覧:</li>
-<ul>
-EOF_A
-
-foreach my $m_str (@array_new_hosts_mac_str){
-    $m_str = &int_to_mac_string($m_str);
-    print "<li>$m_str</li>\n";
-}
-
-print <<"EOF_B";
-</ul>
 </ul>
 <p><a href="../html/index.html">メニューへ戻る</a></p>
 </body>
 </html>
-EOF_B
+EOF
 }
 
 
