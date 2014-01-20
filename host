@@ -74,8 +74,8 @@ sub main(){
 
 	my $mac_str = $ARGV[1];
 	my $mac = mac_string_to_int($ARGV[1]);
-   	my $datapath_id = oct($ARGV[2]);
-    	my $port = oct($ARGV[3]);
+   	my $datapath_id = hex($ARGV[2]);
+    	my $port = hex($ARGV[3]);
 	my $is_occupied = Host::FREE;
 	if(defined($ARGV[4])){
 	    $is_occupied = $ARGV[4];

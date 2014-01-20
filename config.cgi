@@ -563,8 +563,8 @@ sub add_host(){
     my $content = from_json($content_string);
     my $macstr = ${$content}{'mac'};
     my $mac = mac_string_to_int($macstr);
-    my $datapath_id = ${$content}{'datapath_id'};
-    my $port = ${$content}{'port'};
+    my $datapath_id =  hex(${$content}{'datapath_id'});
+    my $port =  hex(${$content}{'port'});
     my $is_occupied = ${$content}{'is_occupied'};
 
     if(!defined($is_occupied)){
@@ -894,7 +894,7 @@ sub handle_delete_requests(){
 	    reply_not_found();
 	}
     }
-    if($path[0] eq "networks"){
+    elsif($path[0] eq "networks"){
 	my ($slice_id, $binding_id) = ();
 	if(@path >= 2){
 	    $slice_id = $path[1];
@@ -955,11 +955,7 @@ sub delete_host(){
     my $mac = mac_string_to_int($mac_str);
 
     my $ret = $Host->delete_host($mac);
-    if($ret == Host::NO_HOST_FOUND){
-	reply_not_found();
-	return;	
-    }
-    elsif($ret < 0){
+    if($ret < 0){
 	reply_error("Failed to delete host (MAC: $mac_str).");
 	return;
     }
