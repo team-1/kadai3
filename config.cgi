@@ -485,7 +485,26 @@ sub show_filters(){
 sub handle_post_requests(){
     my @path = @_;
 
-    if($path[0] eq "networks"){
+    if($path[0] eq "hosts"){
+	my ($mac_str, $num_order) = ();
+	
+	if(@path == 1){
+	    add_host();
+	}
+	elsif($path[1] eq "available" && @path == 2){
+	    reply_not_found();
+	}
+	elsif($path[1] eq "mac" && @path == 3){
+	    reply_not_found();
+	}
+	elsif($path[1] eq "available" && $path[2] eq "num" && @path == 4){
+	    reply_not_found();
+	}
+	else{
+	    reply_not_found();
+	}
+    }
+    elsif($path[0] eq "networks"){
 	my ($slice_id, $binding_id) = ();
 	if(@path >= 2){
 	    $slice_id = $path[1];
@@ -536,6 +555,28 @@ sub handle_post_requests(){
     else{
 	reply_not_found();
     }
+}
+
+
+sub add_host(){
+    my $content_string = get_request_body();
+    my $content = from_json($content_string);
+    my $macstr = ${$content}{'mac'};
+    my $mac = mac_string_to_int($macstr);
+    my $datapath_id = ${$content}{'datapath_id'};
+    my $port = ${$content}{'port'};
+    my $is_occupied = ${$content}{'is_occupied'};
+
+    if(!defined($is_occupied)){
+	$is_occupied = Host::FREE;
+    }
+
+    if($Host->add_host($mac, $datapath_id, $port, $is_occupied) < 0){
+	reply_error("Failed to create a slice.");
+	return;
+    }
+
+    reply_accepted();
 }
 
 
@@ -718,7 +759,27 @@ sub add_filters(){
 sub handle_put_requests(){
     my @path = @_;
 
-    if($path[0] eq "networks"){
+    if($path[0] eq "hosts"){
+	my ($mac_str, $num_order) = ();
+	
+	if(@path == 1){
+	    reply_not_found();
+	}
+	elsif($path[1] eq "available" && @path == 2){
+	    reply_not_found();
+	}
+	elsif($path[1] eq "mac" && @path == 3){
+	    $mac_str = $path[2];
+	    update_host_state($mac_str);
+	}
+	elsif($path[1] eq "available" && $path[2] eq "num" && @path == 4){
+	    reply_not_found();
+	}
+	else{
+	    reply_not_found();
+	}
+    }
+    elsif($path[0] eq "networks"){
 	my $slice_id;
 	if(@path >= 2){
 	    $slice_id = $path[1];
@@ -769,6 +830,27 @@ sub handle_put_requests(){
 }
 
 
+sub update_host_state(){
+    my ($mac_str) = @_;
+    my $mac = mac_string_to_int($mac_str);
+    my $content_string = get_request_body();
+    my $content = from_json($content_string);
+    my $is_occupied = ${$content}{'is_occupied'};
+
+    my $ret = $Host->update_host_state($mac, $is_occupied);
+    if($ret == Host::NO_HOST_FOUND){
+	reply_not_found();
+	return;	
+    }
+    elsif($ret < 0){
+	reply_error("Failed to update state of host (MAC: $mac_str).");
+	return;
+    }
+
+    reply_accepted();    
+}
+
+
 sub modify_network(){
     my ($slice_id) = (@_);
     my $content_string = get_request_body();
@@ -792,6 +874,26 @@ sub modify_network(){
 sub handle_delete_requests(){
     my @path = @_;
 
+    if($path[0] eq "hosts"){
+	my ($mac_str, $num_order) = ();
+	
+	if(@path == 1){
+	    reply_not_found();
+	}
+	elsif($path[1] eq "available" && @path == 2){
+	    reply_not_found();
+	}
+	elsif($path[1] eq "mac" && @path == 3){
+	    $mac_str = $path[2];
+	    delete_host($mac_str);
+	}
+	elsif($path[1] eq "available" && $path[2] eq "num" && @path == 4){
+	    reply_not_found();
+	}
+	else{
+	    reply_not_found();
+	}
+    }
     if($path[0] eq "networks"){
 	my ($slice_id, $binding_id) = ();
 	if(@path >= 2){
@@ -845,6 +947,24 @@ sub handle_delete_requests(){
     else{
 	reply_not_found();
     }
+}
+
+
+sub delete_host(){
+    my ($mac_str) = @_;
+    my $mac = mac_string_to_int($mac_str);
+
+    my $ret = $Host->delete_host($mac);
+    if($ret == Host::NO_HOST_FOUND){
+	reply_not_found();
+	return;	
+    }
+    elsif($ret < 0){
+	reply_error("Failed to delete host (MAC: $mac_str).");
+	return;
+    }
+
+    reply_accepted();
 }
 
 
