@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>SVNM: Simple Virtual Network Manager</title>
+</head>
+
+<body>
+<h1>Simple Virtual Network Manager</h1>
+<p>仮想ネットワークに対する操作を選択して下さい。</p>
+<ul>
+  <li><a href="./makenetwork.html">仮想ネットワーク作成</a></li>
+  <li><a>仮想ネットワーク一覧</a></li>
+</ul>
+</body>
+</html>
