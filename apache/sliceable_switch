@@ -1,4 +1,5 @@
 Listen 0.0.0.0:8888
+Listen 0.0.0.0:8890
 
 <VirtualHost *:8888>
 
@@ -41,4 +42,39 @@ Listen 0.0.0.0:8888
     ErrorLog ${APACHE_LOG_DIR}/sliceable_switch_error.log
     CustomLog ${APACHE_LOG_DIR}/sliceable_switch_access.log combined
 
+</VirtualHost>
+
+<VirtualHost *:8890>
+    ServerAdmin administrator@example.com
+
+    DocumentRoot /home/sliceable_switch
+
+    <Directory />
+        Options FollowSymLinks
+        AllowOverride None
+        Order deny,allow
+        Deny from all
+    </Directory>
+
+    <Directory /home/sliceable_switch/html/>
+        Options FollowSymLinks
+	Options Indexes
+        AllowOverride Options
+	Order allow,deny
+        allow from all
+    </Directory>
+
+    <Directory /home/sliceable_switch/script_gui/>
+        Options +ExecCGI
+	Script GET /makenetwork.cgi
+        Script PUT /makenetwork.cgi
+        Script POST /makenetwork.cgi
+        Script DELETE /makenetwork.cgi
+        AllowOverride None
+        Order deny,allow
+        Deny from all
+    </Directory>
+
+    ErrorLog ${APACHE_LOG_DIR}/sliceable_switch_gui_error.log
+    CustomLog ${APACHE_LOG_DIR}/sliceable_switch_gui_access.log combined
 </VirtualHost>
