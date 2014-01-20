@@ -8,7 +8,7 @@ API について
 
 スライス機能付きスイッチ操作用 API については、以下の wiki ページを参照して下さい。
 
-[REST API 一覧](./wiki/REST-API-一覧)
+[REST API 一覧](../wiki/REST-API-一覧)
 
 
 使用法
