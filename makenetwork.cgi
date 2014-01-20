@@ -40,9 +40,10 @@ $ua->request( $req );
 
 #print information
 print <<"EOF";
+<!DOCTYPE html>
 <html>
 <head>
-<title> </title>
+<title> result </title>
 </head>
 <body>
 @array[0]

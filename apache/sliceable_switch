@@ -66,14 +66,16 @@ Listen 0.0.0.0:8890
 
     <Directory /home/sliceable_switch/script_gui/>
         Options +ExecCGI
-	Script GET /makenetwork.cgi
-        Script PUT /makenetwork.cgi
-        Script POST /makenetwork.cgi
-        Script DELETE /makenetwork.cgi
-        AllowOverride None
-        Order deny,allow
-        Deny from all
+	# Script GET /makenetwork.cgi
+        # Script PUT /makenetwork.cgi
+        # Script POST /makenetwork.cgi
+        # Script DELETE /makenetwork.cgi
+	AllowOverride Options
+    	Order allow,deny
+	allow from all
     </Directory>
+
+    AddHandler cgi-script .cgi
 
     ErrorLog ${APACHE_LOG_DIR}/sliceable_switch_gui_error.log
     CustomLog ${APACHE_LOG_DIR}/sliceable_switch_gui_access.log combined
