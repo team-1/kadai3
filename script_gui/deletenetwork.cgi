@@ -9,9 +9,8 @@ use JSON;
 
 my $q = new CGI;
 my $slice_name ='initial_slice_name';
-my $number_of_hosts = 0;
-my @array_new_hosts_mac = ();
-my @array_new_hosts_mac_str = ();
+my @array_used_hosts_mac = ();
+my @array_used_hosts_mac_str = ();
 
 print "Content-type: text/html; charset=UTF-8\n\n";
 
@@ -20,9 +19,13 @@ exit;
 
 sub main(){
     &read_form_data();
+    &get_hosts_belonging_to_deleted_slice();
+
     &check_available_hosts();
     &create_new_slice();
     &add_hosts_to_new_slice();
+
+
     &update_added_hosts();
     &print_message_success();
 }
@@ -33,8 +36,12 @@ sub read_form_data(){
     # Read form data
     $slice_name = $q->param('slice_name') || undef;
     chomp($slice_name);
-    $number_of_hosts = $q->param('number_of_hosts') || undef;
-    chomp($number_of_hosts);
+}
+
+
+# 削除するスライスに属するホストの MAC を取得
+sub get_hosts_belonging_to_deleted_slice(){
+    
 }
 
 
@@ -104,9 +111,9 @@ sub add_hosts_to_new_slice(){
 }
 
 
-# 追加したホストの使用状態を"使用中"に変更
+# 追加したホストの使用状態を"未使用"に変更
 sub update_added_hosts(){
-    foreach my $m_str (@array_new_hosts_mac_str){
+    foreach my $m_str (@array_used_hosts_mac_str){
 	$m_str =~ s/://g;
 	print $m_str, "\n";
 	my $uri = 'http://127.0.0.1:8888/hosts/mac/'.$m_str;
@@ -115,7 +122,7 @@ sub update_added_hosts(){
 	$req->header( 'Content-Type' => 'application/json' );
 	 
 	my $ua = LWP::UserAgent->new;
-	my $json = '{ "is_occupied": "1" }';
+	my $json = '{ "is_occupied": "0" }'; # 未使用
 	$req->content( $json );
 	my $response = $ua->request( $req );
 
@@ -133,14 +140,13 @@ print <<"EOF";
 <!DOCTYPE html>
 <html>
 <head>
-<title> SVNM: 仮想ネットワーク作成結果 </title>
+<title> SVNM: 仮想ネットワーク削除結果 </title>
 </head>
 <body>
-<h1>仮想ネットワーク作成結果</h1>
-<p style="color: blue;"><b>正常に仮想ネットワークが作成されました。</b></p>
+<h1>仮想ネットワーク削除結果</h1>
+<p style="color: blue;"><b>正常に仮想ネットワークが削除されました。</b></p>
 <ul>
 <li>仮想ネットワーク名: $slice_name</li>
-<li>ホスト数: $number_of_hosts</li>
 </ul>
 <p><a href="../html/index.html">メニューへ戻る</a></p>
 </body>
@@ -156,16 +162,15 @@ print <<"EOF";
 <!DOCTYPE html>
 <html>
 <head>
-<title> SVNM: 仮想ネットワーク作成結果 </title>
+<title> SVNM: 仮想ネットワーク削除結果 </title>
 </head>
 <body>
-<h1>仮想ネットワーク作成結果</h1>
-<p style="color: red;"><b>[エラー]: 仮想ネットワークが作成できませんでした。</b></p>
+<h1>仮想ネットワーク削除結果</h1>
+<p style="color: red;"><b>[エラー]: 仮想ネットワークが削除できませんでした。</b></p>
 <p><b>[エラーメッセージ]: $message_str</b></p>
 <p><b>[エラー箇所]: $caller_str</b></p>
 <ul>
 <li>仮想ネットワーク名: $slice_name</li>
-<li>ホスト数: $number_of_hosts</li>
 </ul>
 <p><a href="../html/index.html">メニューへ戻る</a></p>
 </body>

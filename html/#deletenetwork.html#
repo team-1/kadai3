@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>SVNM: 仮想ネットワーク削除</title>
+</head>
+
+<body>
+<h1>仮想ネットワーク削除</h1>
+<form action="../script_gui/deletenetwork.cgi" method="post">
+仮想ネットワーク名<br>
+<input type=text name="slice_name">x
+<input type=submit value=OK>
+</form>
+<br>
+<p><a href="./index.html">メニューへ戻る</a></p>
+</body>
+</html>

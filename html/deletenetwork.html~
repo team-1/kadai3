@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>SVNM: 仮想ネットワーク作成</title>
+</head>
+
+<body>
+<h1>仮想ネットワーク作成</h1>
+<form action="../script_gui/makenetwork.cgi" method="post">
+仮想ネットワーク名<br>
+<input type=text name="slice_name"><br>
+ホスト数<br>
+<input type=text name="number_of_hosts"><br>
+<input type=submit value=OK>
+</form>
+<br>
+<p><a href="./index.html">メニューへ戻る</a></p>
+</body>
+</html>
